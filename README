@@ -1,0 +1,1 @@
+These utilities are a poor man's copy of real gnu utilities, but written in scala. You really shouldn't use them, I'm just writing them to learn scala (and git).

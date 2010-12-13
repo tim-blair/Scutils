@@ -35,6 +35,5 @@ src.getLines.foreach(line => {
 	}
 })
 
-def checkArg(str: String) = {
+def checkArg(str: String) =
 	args.length > 0 && args.contains(str)
-}

@@ -1,2 +1,2 @@
 #!/bin/sh
-exec scala $SCALA_PATH/cat.scala $@
+exec scala $SCALA_PATH/cat.scala "$@"

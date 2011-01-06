@@ -22,32 +22,34 @@ val showEnds = checkArg("-E")
 //-s suppress repeated empty lines
 val suppress = checkArg("-s")
 
-val src = 
+val srcs = 
 	if(args.length > 0 && args.contains("-"))
-		io.Source.fromInputStream(System.in)
+		io.Source.stdin :: Nil
 	else
-		io.Source.fromFile(args.filter(arg => !arg.startsWith("-"))(0))
+		args filter(arg => !arg.startsWith("-")) map(io.Source.fromFile(_)) toList
 var num = 1
 var prevWasBlank = false
-src.getLines.foreach(line => {
-	if(!(suppress && prevWasBlank && line == "")) {
-		prevWasBlank = line == ""
-		if(nonBlankNum) {
-			//Re-use the check we already did
-			if(prevWasBlank) {
+srcs.foreach(src => {
+	src.getLines.foreach(line => {
+		if(!(suppress && prevWasBlank && line == "")) {
+			prevWasBlank = line == ""
+			if(nonBlankNum) {
+				//Re-use the check we already did
+				if(prevWasBlank) {
+					printf("%6d ", num)
+					num += 1
+				}
+			} else if(numbered) {
+				//real cat pads and puts a space -- assumes under 1 million lines?
 				printf("%6d ", num)
 				num += 1
 			}
-		} else if(numbered) {
-			//real cat pads and puts a space -- assumes under 1 million lines
-			printf("%6d ", num)
-			num += 1
+			print(line)
+			if(showEnds)
+				print("$")
+			println()
 		}
-		print(line)
-		if(showEnds)
-			print("$")
-		println()
-	}
+	})
 })
 
 def checkArg(str: String) =

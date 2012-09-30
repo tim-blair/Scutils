@@ -31,28 +31,28 @@ object Comm extends App {
     })
   }
 
-  def getOutputDelimiter(arguments: Array[String]): String = {
+  def getOutputDelimiter(arguments: Array[String]): (String, List[String]) = {
     val outputDelimiterParamName = "--output-delimiter"
     val defaultDelimiter = "\t"
       
-    def getActualDelimiter(args: Array[String]): String = { 
+    def getActualDelimiter(args: Array[String], unusedArgs: List[String]): (String, List[String]) = { 
       if(args.isEmpty)
-        defaultDelimiter
+        (defaultDelimiter, unusedArgs)
       else if(args.head == outputDelimiterParamName)
-        args.tail.head
+        (args.tail.head, unusedArgs ::: args.tail.tail.toList)
       else if(args.head.startsWith(outputDelimiterParamName))
         // --long=foo style
-        args.head.substring(outputDelimiterParamName.size + 1)
+        (args.head.substring(outputDelimiterParamName.size + 1), unusedArgs ::: args.tail.toList)
       else
-        getOutputDelimiter(args.tail)
+        getActualDelimiter(args.tail, args.head :: unusedArgs)
     }
-    getActualDelimiter(arguments)
+    getActualDelimiter(arguments, Nil)
   }
 
   def processFiles(first: List[String], second: List[String], args: Array[String]): List[Option[String]] = {
-    val delimiter = getOutputDelimiter(args)
+    val (delimiter, remainingArgs) = getOutputDelimiter(args)
     def unlessContains(target: String, result: => String): Option[String] = {
-      if(args.contains(target))
+      if(remainingArgs.contains(target))
         None
       else
         Some(result)

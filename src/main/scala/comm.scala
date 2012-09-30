@@ -24,9 +24,7 @@ object Comm extends App {
     val first = readFile(fileNames(0))
     val second = readFile(fileNames(1))
     
-    val delimiter = getOutputDelimiter(arguments)
-    
-    val output = processFiles(first, second, arguments, delimiter)
+    val output = processFiles(first, second, arguments)
     output.foreach(str => str match {
       case None =>
       case Some(string) => println(string)
@@ -41,20 +39,27 @@ object Comm extends App {
       if(args.isEmpty)
         defaultDelimiter
       else if(args.head == outputDelimiterParamName)
-        if(args.tail.head == "=")
-          args.tail.tail.head
-        else
-          args.tail.head.substring(1)
+        args.tail.head
+      else if(args.head.startsWith(outputDelimiterParamName))
+        // --long=foo style
+        args.head.substring(outputDelimiterParamName.size + 1)
       else
         getOutputDelimiter(args.tail)
     }
     getActualDelimiter(arguments)
   }
-  
-  def processFiles(first: List[String], second: List[String], args: Array[String], delimiter: String): List[Option[String]] = {
-    def firstColumn(str: String): Option[String] = if(args.contains("-1")) None else Some(str)
-    def secondColumn(str: String): Option[String] = if(args.contains("-2")) None else Some(delimiter + str)
-    def thirdColumn(str: String): Option[String] = if(args.contains("-3")) None else Some(delimiter + delimiter + str)
+
+  def processFiles(first: List[String], second: List[String], args: Array[String]): List[Option[String]] = {
+    val delimiter = getOutputDelimiter(args)
+    def unlessContains(target: String, result: => String): Option[String] = {
+      if(args.contains(target))
+        None
+      else
+        Some(result)
+    }
+    def firstColumn(str: String): Option[String] = unlessContains("-1", str)
+    def secondColumn(str: String): Option[String] = unlessContains("-2", delimiter + str)
+    def thirdColumn(str: String): Option[String] = unlessContains("-3", delimiter + delimiter + str)
 
     def process(first: List[String], second: List[String]): List[Option[String]] = {
     	if(first.isEmpty && second.isEmpty)

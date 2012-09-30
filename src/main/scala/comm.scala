@@ -18,41 +18,62 @@ import java.io.File
 
 object Comm extends App {
   
-  
   override def main(args: Array[String]) {
     val fileNames = args.takeRight(2)
     val arguments = args.dropRight(2)
     val first = readFile(fileNames(0))
     val second = readFile(fileNames(1))
     
-    val output = process(first, second, arguments)
+    val delimiter = getOutputDelimiter(arguments)
+    
+    val output = processFiles(first, second, arguments, delimiter)
     output.foreach(str => str match {
       case None =>
       case Some(string) => println(string)
     })
   }
-  
-  def process(first: List[String], second: List[String], args: Array[String]): List[Option[String]] = {
-    def firstColumn(str: String): Option[String] = if(args.contains("-1")) None else Some(str)
-    def secondColumn(str: String): Option[String] = if(args.contains("-2")) None else Some("\t" + str)
-    def thirdColumn(str: String): Option[String] = if(args.contains("-3")) None else Some("\t\t" + str)
 
-	if(first.isEmpty && second.isEmpty)
-      Nil
-    else if(first.isEmpty)
-      secondColumn(second.head) :: process(first, second.tail, args)
-    else if(second.isEmpty)
-      firstColumn(first.head) :: process(first.tail, second, args)
-    else if(first.head == second.head)
-      thirdColumn(first.head) :: process(first.tail, second.tail, args)
-    else if(first.head > second.head)
-      secondColumn(second.head) :: process(first, second.tail, args)
-    else // first.head < second.head
-      firstColumn(first.head) :: process(first.tail, second, args)
+  def getOutputDelimiter(arguments: Array[String]): String = {
+    val outputDelimiterParamName = "--output-delimiter"
+    val defaultDelimiter = "\t"
+      
+    def getActualDelimiter(args: Array[String]): String = { 
+      if(args.isEmpty)
+        defaultDelimiter
+      else if(args.head == outputDelimiterParamName)
+        if(args.tail.head == "=")
+          args.tail.tail.head
+        else
+          args.tail.head.substring(1)
+      else
+        getOutputDelimiter(args.tail)
+    }
+    getActualDelimiter(arguments)
   }
   
+  def processFiles(first: List[String], second: List[String], args: Array[String], delimiter: String): List[Option[String]] = {
+    def firstColumn(str: String): Option[String] = if(args.contains("-1")) None else Some(str)
+    def secondColumn(str: String): Option[String] = if(args.contains("-2")) None else Some(delimiter + str)
+    def thirdColumn(str: String): Option[String] = if(args.contains("-3")) None else Some(delimiter + delimiter + str)
 
-    def readFile(file: String): List[String] = {
+    def process(first: List[String], second: List[String]): List[Option[String]] = {
+    	if(first.isEmpty && second.isEmpty)
+        Nil
+      else if(first.isEmpty)
+        secondColumn(second.head) :: process(first, second.tail)
+      else if(second.isEmpty)
+        firstColumn(first.head) :: process(first.tail, second)
+      else if(first.head == second.head)
+        thirdColumn(first.head) :: process(first.tail, second.tail)
+      else if(first.head > second.head)
+        secondColumn(second.head) :: process(first, second.tail)
+      else // first.head < second.head
+        firstColumn(first.head) :: process(first.tail, second)
+    }
+    process(first, second)
+  }
+  
+  def readFile(file: String): List[String] = {
     Source.fromFile(new File(file)).getLines.toList
   }
 

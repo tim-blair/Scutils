@@ -24,11 +24,14 @@ object Comm extends App {
     val first = readFile(fileNames(0))
     val second = readFile(fileNames(1))
     
-    val output = processFiles(first, second, arguments)
-    output.foreach(str => str match {
+    processFiles(first, second, arguments)
+  }
+  
+  def output(str: Option[String]) = {
+    str match {
       case None =>
       case Some(string) => println(string)
-    })
+    }
   }
 
   def getOutputDelimiter(arguments: Array[String]): (String, List[String]) = {
@@ -51,7 +54,6 @@ object Comm extends App {
   
   def checkArg(argName: String, arguments: List[String]): (Boolean, List[String]) =
     (arguments.contains(argName), arguments.filter(str => str != argName))
-  
     
   def getSuppressions(args: List[String]): (Boolean, Boolean, Boolean, List[String]) = {
     def getActualSuppressions(args: List[String], unusedArgs: List[String]): (Boolean, Boolean, Boolean, List[String]) = {
@@ -66,35 +68,59 @@ object Comm extends App {
     getActualSuppressions(args, Nil)
   }
   
-  def processFiles(first: List[String], second: List[String], args: Array[String]): List[Option[String]] = {
+  def checkIsOrdered(check: Boolean, strs: List[String], filenum: String): Boolean = {
+    def isOrdered(): Boolean = strs.tail.isEmpty || strs.head < strs.tail.head
+    
+    if(check && !isOrdered) {
+      System.err.println("comm: file " + filenum + " is not in sorted order")
+      false
+    } else
+      check
+  }
+  
+  def processFiles(first: List[String], second: List[String], args: Array[String]) = {
     val (delimiter, remainingArgs1) = getOutputDelimiter(args)
-    val (isCheckOrder, remainingArgs2) = checkArg("--check-order", remainingArgs1)
-    val (isNoCheckOrder, remainingArgs3) = checkArg("--nocheck-order", remainingArgs2)
+    val (isForceCheckOrder, remainingArgs2) = checkArg("--check-order", remainingArgs1)
+    val (isForceNoCheckOrder, remainingArgs3) = checkArg("--nocheck-order", remainingArgs2)
     val (suppressOne, suppressTwo, suppressThree, _) = getSuppressions(remainingArgs3) 
     
     def firstColumn(str: String): Option[String] = if(suppressOne) None else Some(str)
     def secondColumn(str: String): Option[String] = if(suppressTwo) None else Some(delimiter + str)
     def thirdColumn(str: String): Option[String] = if(suppressThree) None else Some(delimiter + delimiter + str)
 
-    def process(first: List[String], second: List[String]): List[Option[String]] = {
-    	if(first.isEmpty && second.isEmpty)
-        Nil
-      else if(first.isEmpty)
-        secondColumn(second.head) :: process(first, second.tail)
-      else if(second.isEmpty)
-        firstColumn(first.head) :: process(first.tail, second)
-      else if(first.head == second.head)
-        thirdColumn(first.head) :: process(first.tail, second.tail)
-      else if(first.head > second.head)
-        secondColumn(second.head) :: process(first, second.tail)
-      else // first.head < second.head
-        firstColumn(first.head) :: process(first.tail, second)
+    def process(first: List[String], second: List[String], checkFirst: Boolean, checkSecond: Boolean): Unit = {
+      def checkFirstOrder(): Boolean = checkIsOrdered(checkFirst, first, "1")
+      def checkSecondOrder(): Boolean = checkIsOrdered(checkSecond, second, "2")
+      
+      def handleFirst() = {
+        output(firstColumn(first.head))
+        process(first.tail, second, checkFirstOrder, checkSecond)
+      }
+    	def handleSecond() = {
+    	  output(secondColumn(second.head))
+    	  process(first, second.tail, checkFirst, checkSecondOrder)
+    	}
+      
+      if(first.isEmpty && second.isEmpty) {
+        // End the recursion
+      } else if(first.isEmpty) {
+        handleSecond
+      } else if(second.isEmpty) {
+        handleFirst
+      } else if(first.head == second.head) {
+        output(thirdColumn(first.head))
+        process(first.tail, second.tail, checkFirstOrder, checkSecondOrder)
+      } else if(first.head > second.head) {
+        handleSecond
+      } else { // first.head < second.head
+        handleFirst
+      }
     }
-    process(first, second)
+    // check order is on by default, so we only need to consider nocheck
+    process(first, second, !isForceNoCheckOrder, !isForceNoCheckOrder)
   }
   
-  def readFile(file: String): List[String] = {
+  def readFile(file: String): List[String] =
     Source.fromFile(new File(file)).getLines.toList
-  }
 
 }

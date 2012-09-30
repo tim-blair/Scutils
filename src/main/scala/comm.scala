@@ -48,18 +48,33 @@ object Comm extends App {
     }
     getActualDelimiter(arguments, Nil)
   }
-
-  def processFiles(first: List[String], second: List[String], args: Array[String]): List[Option[String]] = {
-    val (delimiter, remainingArgs) = getOutputDelimiter(args)
-    def unlessContains(target: String, result: => String): Option[String] = {
-      if(remainingArgs.contains(target))
-        None
-      else
-        Some(result)
+  
+  def checkArg(argName: String, arguments: List[String]): (Boolean, List[String]) =
+    (arguments.contains(argName), arguments.filter(str => str != argName))
+  
+    
+  def getSuppressions(args: List[String]): (Boolean, Boolean, Boolean, List[String]) = {
+    def getActualSuppressions(args: List[String], unusedArgs: List[String]): (Boolean, Boolean, Boolean, List[String]) = {
+      if(args.isEmpty)
+        (false, false, false, unusedArgs)
+      else if(args.head.startsWith("-") && !args.head.startsWith("--")) {
+        val arg = args.head
+        (arg.contains('1'), arg.contains('2'), arg.contains('3'), args.tail)
+      } else
+        getActualSuppressions(args.tail, args.head :: unusedArgs)
     }
-    def firstColumn(str: String): Option[String] = unlessContains("-1", str)
-    def secondColumn(str: String): Option[String] = unlessContains("-2", delimiter + str)
-    def thirdColumn(str: String): Option[String] = unlessContains("-3", delimiter + delimiter + str)
+    getActualSuppressions(args, Nil)
+  }
+  
+  def processFiles(first: List[String], second: List[String], args: Array[String]): List[Option[String]] = {
+    val (delimiter, remainingArgs1) = getOutputDelimiter(args)
+    val (isCheckOrder, remainingArgs2) = checkArg("--check-order", remainingArgs1)
+    val (isNoCheckOrder, remainingArgs3) = checkArg("--nocheck-order", remainingArgs2)
+    val (suppressOne, suppressTwo, suppressThree, _) = getSuppressions(remainingArgs3) 
+    
+    def firstColumn(str: String): Option[String] = if(suppressOne) None else Some(str)
+    def secondColumn(str: String): Option[String] = if(suppressTwo) None else Some(delimiter + str)
+    def thirdColumn(str: String): Option[String] = if(suppressThree) None else Some(delimiter + delimiter + str)
 
     def process(first: List[String], second: List[String]): List[Option[String]] = {
     	if(first.isEmpty && second.isEmpty)

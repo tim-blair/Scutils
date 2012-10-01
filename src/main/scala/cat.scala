@@ -13,6 +13,41 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 object Cat extends App {
+  
+  class Printer {
+    def output(line: String) = {
+      print(line)
+      endLine
+    }
+    
+    protected def endLine = println()
+  }
+  
+  class EndPrinter extends Printer {
+    override def endLine = {
+      print("$")
+      super.endLine
+    }
+  }
+  
+  class Numberer {
+    def printLineNumber(empty: Boolean, num: Int): Int = {
+      printf("%6d ", num)
+      num + 1
+    }
+  }
+  
+  class NoopNumberer extends Numberer {
+    override def printLineNumber(empty: Boolean, num: Int): Int = num
+  }
+  
+  class NonBlankNumberer extends Numberer {
+    override def printLineNumber(empty: Boolean, num: Int): Int = {
+      if(empty) num
+      else super.printLineNumber(empty, num)
+    }
+  }
+  
   override def main(args: Array[String]) = {
     def checkArg(str: String) = args.contains(str)
 
@@ -29,33 +64,28 @@ object Cat extends App {
       if(checkArg("-")) io.Source.stdin :: Nil
 	    else args.filter(!_.startsWith("-")).map(io.Source.fromFile(_)).toList
 		    
-		def output(line: String) = {
-      print(line)
-      if(showEnds)
-        print("$")
-      println()
-	  }
+    val printer = if(showEnds) new EndPrinter else new Printer
+    val numberer = if(nonBlankNum) new NonBlankNumberer else if(numbered) new Numberer else new NoopNumberer
     
-    def printLineNumber(num: Int): Int = {
-      printf("%6d ", num)
-      num + 1
-    }
-    
-	  def printLines(lines: List[String], lineNum: Int, prevWasBlank: Boolean): Unit = {
+	  def printLines(lines: List[String], lineNum: Int, prevWasBlank: Boolean): (Int, Boolean) = {
       if(lines.isEmpty) {
-        // nothing to do
+        (lineNum, prevWasBlank)
       } else if(suppress && prevWasBlank && lines.head.isEmpty) {
         printLines(lines.tail, lineNum, true)
       } else {
         val line = lines.head
-        val nextNum =
-          if(nonBlankNum && !line.isEmpty) printLineNumber(lineNum)
-          else if(numbered && !nonBlankNum) printLineNumber(lineNum)
-          else lineNum
-          
-        output(line)
+        val nextNum = numberer.printLineNumber(line.isEmpty, lineNum)
+        
+        printer.output(line)
         printLines(lines.tail, nextNum, line.isEmpty)
       }
+    }
+    var lineCount = 1
+    var isBlank = false
+    for(src <- srcs) {
+      val (count, blank) = printLines(src.getLines.toList, lineCount, isBlank)
+      lineCount = count
+      isBlank = blank
     }
   }
 }

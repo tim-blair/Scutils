@@ -68,15 +68,6 @@ object Comm extends App {
     getActualSuppressions(args, Nil)
   }
   
-  def checkIsOrdered(check: Boolean, strs: List[String], filenum: String): Boolean = {
-    def isOrdered(): Boolean = strs.tail.isEmpty || strs.head < strs.tail.head
-    
-    if(check && !isOrdered) {
-      System.err.println("comm: file " + filenum + " is not in sorted order")
-      false
-    } else
-      check
-  }
   
   def processFiles(first: List[String], second: List[String], args: Array[String]) = {
     val (delimiter, remainingArgs1) = getOutputDelimiter(args)
@@ -91,6 +82,15 @@ object Comm extends App {
     val compare: (String, String) => Int = {
       if(isCaseInsensitive) (left, right) => left.compareToIgnoreCase(right)
       else (left, right) => left.compareTo(right)
+    }
+    def checkIsOrdered(check: Boolean, strs: List[String], filenum: String): Boolean = {
+        def isOrdered(): Boolean = strs.tail.isEmpty || compare(strs.head, strs.tail.head) <= 0
+            
+            if(check && !isOrdered) {
+              System.err.println("comm: file " + filenum + " is not in sorted order")
+              false
+            } else
+              check
     }
 
     def process(first: List[String], second: List[String], checkFirst: Boolean, checkSecond: Boolean): Unit = {

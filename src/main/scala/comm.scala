@@ -82,11 +82,16 @@ object Comm extends App {
     val (delimiter, remainingArgs1) = getOutputDelimiter(args)
     val (isForceCheckOrder, remainingArgs2) = checkArg("--check-order", remainingArgs1)
     val (isForceNoCheckOrder, remainingArgs3) = checkArg("--nocheck-order", remainingArgs2)
-    val (suppressOne, suppressTwo, suppressThree, _) = getSuppressions(remainingArgs3) 
+    val (isCaseInsensitive, remainingArgs4) = checkArg("-i", remainingArgs3)
+    val (suppressOne, suppressTwo, suppressThree, _) = getSuppressions(remainingArgs4) 
     
     def firstColumn(str: String): Option[String] = if(suppressOne) None else Some(str)
     def secondColumn(str: String): Option[String] = if(suppressTwo) None else Some(delimiter + str)
     def thirdColumn(str: String): Option[String] = if(suppressThree) None else Some(delimiter + delimiter + str)
+    val compare: (String, String) => Int = {
+      if(isCaseInsensitive) (left, right) => left.compareToIgnoreCase(right)
+      else (left, right) => left.compareTo(right)
+    }
 
     def process(first: List[String], second: List[String], checkFirst: Boolean, checkSecond: Boolean): Unit = {
       def checkFirstOrder(): Boolean = checkIsOrdered(checkFirst, first, "1")
@@ -107,10 +112,10 @@ object Comm extends App {
         handleSecond
       } else if(second.isEmpty) {
         handleFirst
-      } else if(first.head == second.head) {
+      } else if(compare(first.head, second.head) == 0) {
         output(thirdColumn(first.head))
         process(first.tail, second.tail, checkFirstOrder, checkSecondOrder)
-      } else if(first.head > second.head) {
+      } else if(compare(first.head, second.head) > 0) {
         handleSecond
       } else { // first.head < second.head
         handleFirst

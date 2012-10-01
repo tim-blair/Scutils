@@ -62,12 +62,12 @@ object Cat extends App {
 
     val srcs = 
       if(checkArg("-")) io.Source.stdin :: Nil
-	    else args.filter(!_.startsWith("-")).map(io.Source.fromFile(_)).toList
-		    
+      else args.filter(!_.startsWith("-")).map(io.Source.fromFile(_)).toList
+
     val printer = if(showEnds) new EndPrinter else new Printer
     val numberer = if(nonBlankNum) new NonBlankNumberer else if(numbered) new Numberer else new NoopNumberer
     
-	  def printLines(lines: List[String], lineNum: Int, prevWasBlank: Boolean): (Int, Boolean) = {
+    def printLines(lines: List[String], lineNum: Int, prevWasBlank: Boolean): (Int, Boolean) = {
       if(lines.isEmpty) {
         (lineNum, prevWasBlank)
       } else if(suppress && prevWasBlank && lines.head.isEmpty) {

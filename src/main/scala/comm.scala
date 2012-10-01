@@ -84,13 +84,13 @@ object Comm extends App {
       else (left, right) => left.compareTo(right)
     }
     def checkIsOrdered(check: Boolean, strs: List[String], filenum: String): Boolean = {
-        def isOrdered(): Boolean = strs.tail.isEmpty || compare(strs.head, strs.tail.head) <= 0
-            
-            if(check && !isOrdered) {
-              System.err.println("comm: file " + filenum + " is not in sorted order")
-              false
-            } else
-              check
+      def isOrdered(): Boolean = strs.tail.isEmpty || compare(strs.head, strs.tail.head) <= 0
+
+      if(check && !isOrdered) {
+        System.err.println("comm: file " + filenum + " is not in sorted order")
+        false
+      } else
+        check
     }
 
     def process(first: List[String], second: List[String], checkFirst: Boolean, checkSecond: Boolean): Unit = {
@@ -101,10 +101,10 @@ object Comm extends App {
         output(firstColumn(first.head))
         process(first.tail, second, checkFirstOrder, checkSecond)
       }
-    	def handleSecond() = {
-    	  output(secondColumn(second.head))
-    	  process(first, second.tail, checkFirst, checkSecondOrder)
-    	}
+      def handleSecond() = {
+        output(secondColumn(second.head))
+        process(first, second.tail, checkFirst, checkSecondOrder)
+      }
       
       if(first.isEmpty && second.isEmpty) {
         // End the recursion

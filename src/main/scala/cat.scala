@@ -14,12 +14,11 @@
 */
 object Cat extends App {
   override def main(args: Array[String]) = {
-    def checkArg(str: String) =
-      args.length > 0 && args.contains(str)
+    def checkArg(str: String) = args.contains(str)
 
     //-n means number each line
     val numbered = checkArg("-n")
-    //-b means number non-empty lines, overrides -n
+    //-b means number only non-empty lines, overrides -n
     val nonBlankNum = checkArg("-b")
     //-E display $ at end of each line
     val showEnds = checkArg("-E")
@@ -27,33 +26,36 @@ object Cat extends App {
     val suppress = checkArg("-s")
 
     val srcs = 
-      if(args.length > 0 && args.contains("-"))
-		    io.Source.stdin :: Nil
-	    else
-		    args filter(arg => !arg.startsWith("-")) map(io.Source.fromFile(_)) toList
-    var num = 1
-    var prevWasBlank = false
-    srcs.foreach(src => {
-      src.getLines.foreach(line => {
-        if(!(suppress && prevWasBlank && line == "")) {
-          prevWasBlank = line == ""
-          if(nonBlankNum) {
-				    // Re-use the check we already did
-				    if(prevWasBlank) {
-					    printf("%6d ", num)
-					    num += 1
-				    }
-			    } else if(numbered) {
-				    // real cat pads and puts a space -- assumes under 1 million lines?
-				    printf("%6d ", num)
-				    num += 1
-			    }
-			    print(line)
-			    if(showEnds)
-				    print("$")
-			    println()
-		    }
-	    })
-    })
+      if(checkArg("-")) io.Source.stdin :: Nil
+	    else args.filter(!_.startsWith("-")).map(io.Source.fromFile(_)).toList
+		    
+		def output(line: String) = {
+      print(line)
+      if(showEnds)
+        print("$")
+      println()
+	  }
+    
+    def printLineNumber(num: Int): Int = {
+      printf("%6d ", num)
+      num + 1
+    }
+    
+	  def printLines(lines: List[String], lineNum: Int, prevWasBlank: Boolean): Unit = {
+      if(lines.isEmpty) {
+        // nothing to do
+      } else if(suppress && prevWasBlank && lines.head.isEmpty) {
+        printLines(lines.tail, lineNum, true)
+      } else {
+        val line = lines.head
+        val nextNum =
+          if(nonBlankNum && !line.isEmpty) printLineNumber(lineNum)
+          else if(numbered && !nonBlankNum) printLineNumber(lineNum)
+          else lineNum
+          
+        output(line)
+        printLines(lines.tail, nextNum, line.isEmpty)
+      }
+    }
   }
 }
